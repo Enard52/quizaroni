@@ -34,8 +34,9 @@ to = "https://analytics.yusufaf.dev/api/e"
 status = 200
 
 # SPA routes: one rule per route in apps/web/src/AppRoutes.tsx, served the app
-# shell with 200. Keep this list in sync when adding a route — a route missing
-# here still renders, but answers 404. "/" is index.html itself.
+# shell with 200. A route missing here still renders, but answers 404, so
+# apps/web/src/AppRoutes.netlify.test.ts fails until the route has a rule above
+# the catch-all. "/" is index.html itself.
 [[redirects]]
 from = "/login"
 to = "/index.html"
