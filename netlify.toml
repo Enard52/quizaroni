@@ -46,6 +46,13 @@ from = "/signUp"
 to = "/index.html"
 status = 200
 
+# Netlify matches case-sensitively, React Router doesn't, and the nav links
+# use ROUTES.SIGNUP ("/signup").
+[[redirects]]
+from = "/signup"
+to = "/index.html"
+status = 200
+
 [[redirects]]
 from = "/callback"
 to = "/index.html"
