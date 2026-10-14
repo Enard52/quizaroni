@@ -1,5 +1,5 @@
 import type { Context } from '@netlify/edge-functions';
-import { SITE_ORIGIN } from '../lib/site.ts';
+import { resolveSite } from '../lib/site.ts';
 
 // Netlify Edge Functions run on Deno, not Node. This directory is outside
 // tsconfig.json's `include`, so it gets no ambient Deno types — declare just
@@ -31,6 +31,12 @@ const escapeHtml = (value: string): string =>
 /** Replaces a tag matched by `regex` if present; otherwise leaves html as-is. */
 const replaceTag = (html: string, regex: RegExp, replacement: string): string =>
     regex.test(html) ? html.replace(regex, replacement) : html;
+
+const addNoindex = (html: string): string =>
+    html.replace(
+        '</head>',
+        '<meta name="robots" content="noindex" />\n</head>'
+    );
 
 type PublicSet = {
     title?: string;
@@ -112,7 +118,8 @@ export default async (request: Request, context: Context) => {
             }${author} — study free on Quizaroni.`
     );
     const pageTitle = `${title} · Quizaroni`;
-    const canonical = `${SITE_ORIGIN}/view/${id}`;
+    const site = resolveSite(request, context);
+    const canonical = `${site.origin}/view/${id}`;
 
     let html = await response.text();
 
@@ -168,6 +175,10 @@ export default async (request: Request, context: Context) => {
     // not re-hit the API on every scrape, while edits still surface quickly.
     headers.set('cache-control', 'public, max-age=0, s-maxage=300');
     headers.delete('content-length');
+    if (!site.indexable) {
+        html = addNoindex(html);
+        headers.set('x-robots-tag', 'noindex');
+    }
 
     return new Response(html, {
         status: response.status,

@@ -1,5 +1,5 @@
 import type { Context } from '@netlify/edge-functions';
-import { SITE_ORIGIN } from '../lib/site.ts';
+import { resolveSite } from '../lib/site.ts';
 
 // Netlify Edge Functions run on Deno, not Node. This directory is outside
 // tsconfig.json's `include`, so it gets no ambient Deno types — declare just
@@ -29,7 +29,7 @@ type PublicSummary = {
     updatedAt?: string;
 };
 
-export default async (_request: Request, _context: Context) => {
+export default async (request: Request, context: Context) => {
     // Read lazily inside the handler — see the note in og-meta.ts about
     // Netlify's build-time bundling pass running before env vars exist.
     // Deployed AWS API Gateway (matches BASE_API_URL in the web app).
@@ -54,13 +54,14 @@ export default async (_request: Request, _context: Context) => {
         // crawlers get a well-formed document rather than an error.
     }
 
+    const site = resolveSite(request, context);
     const urls: string[] = [
-        `  <url>\n    <loc>${escapeXml(SITE_ORIGIN)}/</loc>\n  </url>`,
+        `  <url>\n    <loc>${escapeXml(site.origin)}/</loc>\n  </url>`,
     ];
 
     for (const set of studysets) {
         if (!set.studysetUUID) continue;
-        const loc = `${SITE_ORIGIN}/view/${encodeURIComponent(set.studysetUUID)}`;
+        const loc = `${site.origin}/view/${encodeURIComponent(set.studysetUUID)}`;
         const lastmod = set.updatedAt
             ? `\n    <lastmod>${escapeXml(set.updatedAt)}</lastmod>`
             : '';
@@ -73,12 +74,15 @@ export default async (_request: Request, _context: Context) => {
         '\n'
     )}\n</urlset>\n`;
 
-    return new Response(xml, {
-        headers: {
-            'content-type': 'application/xml; charset=utf-8',
-            // Rebuild at most hourly at the edge; cheap and fresh enough for a
-            // sitemap crawlers re-fetch on their own schedule.
-            'cache-control': 'public, max-age=0, s-maxage=3600',
-        },
+    const headers = new Headers({
+        'content-type': 'application/xml; charset=utf-8',
+        // Rebuild at most hourly at the edge; cheap and fresh enough for a
+        // sitemap crawlers re-fetch on their own schedule.
+        'cache-control': 'public, max-age=0, s-maxage=3600',
     });
+    if (!site.indexable) {
+        headers.set('x-robots-tag', 'noindex');
+    }
+
+    return new Response(xml, { headers });
 };
