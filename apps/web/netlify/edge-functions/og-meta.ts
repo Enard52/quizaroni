@@ -38,6 +38,35 @@ const addNoindex = (html: string): string =>
         '<meta name="robots" content="noindex" />\n</head>'
     );
 
+/** Drops the shell's canonical/OG/Twitter tags, which all name the home page. */
+const stripIdentityTags = (html: string): string =>
+    html
+        .replace(/\s*<link\s+rel="canonical"[^>]*>/g, '')
+        .replace(/\s*<meta\s+(?:property="og:|name="twitter:)[^>]*>/g, '');
+
+const serveShell = (
+    html: string,
+    from: Response,
+    indexable: boolean
+): Response => {
+    const headers = new Headers(from.headers);
+    headers.set('content-type', 'text/html; charset=utf-8');
+    // One policy whether or not the set was found: it's the same URL, its
+    // answer flips with the set's visibility, and neither answer is per-user.
+    // Netlify doesn't cache edge-function output without `cache = "manual"`,
+    // so this still runs (and calls the API) on every request; s-maxage only
+    // bounds shared caches downstream, and browsers revalidate every time.
+    headers.set('cache-control', 'public, max-age=0, s-maxage=300');
+    headers.delete('content-length');
+    // The copied ETag is the untouched shell's, but the body now varies.
+    headers.delete('etag');
+    if (indexable) {
+        return new Response(html, { status: 200, headers });
+    }
+    headers.set('x-robots-tag', 'noindex');
+    return new Response(addNoindex(html), { status: 200, headers });
+};
+
 type PublicSet = {
     title?: string;
     description?: string;
@@ -93,14 +122,16 @@ export default async (request: Request, context: Context) => {
         // Network/API failure — fall through and serve the default shell.
     }
 
-    // Private or nonexistent set: the same shell (an owner viewing their own
-    // private set still gets the full app), but a real 404 so crawlers drop
-    // dead or private links instead of indexing them as the generic app.
+    // Private or nonexistent set; the API answers 404 for both. Not an HTTP
+    // 404: an owner opening their own private set in a fresh tab gets this
+    // same document, and an API 404 for any other reason would turn every set
+    // page into one. Crawlers get noindex and no claim to the home page.
     if (notFound) {
-        return new Response(response.body, {
-            status: 404,
-            headers: response.headers,
-        });
+        return serveShell(
+            stripIdentityTags(await response.text()),
+            response,
+            false
+        );
     }
 
     if (!set || !set.title) {
@@ -169,21 +200,7 @@ export default async (request: Request, context: Context) => {
         `<meta name="twitter:description" content="${description}" />`
     );
 
-    const headers = new Headers(response.headers);
-    headers.set('content-type', 'text/html; charset=utf-8');
-    // Let Netlify's CDN cache the rewritten shell briefly so a viral link does
-    // not re-hit the API on every scrape, while edits still surface quickly.
-    headers.set('cache-control', 'public, max-age=0, s-maxage=300');
-    headers.delete('content-length');
-    if (!site.indexable) {
-        html = addNoindex(html);
-        headers.set('x-robots-tag', 'noindex');
-    }
-
-    return new Response(html, {
-        status: response.status,
-        headers,
-    });
+    return serveShell(html, response, site.indexable);
 };
 
 // The `/view/*` path binding is declared in netlify.toml ([[edge_functions]])
