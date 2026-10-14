@@ -16,9 +16,19 @@ declare const Deno: { env: { get(key: string): string | undefined } };
  * <title> + OG/Twitter/description/canonical tags in the shell before it is
  * served — so link unfurls and search snippets reflect the actual set.
  *
- * The set is fetched from the same unauthenticated endpoint the client uses
- * (`/api/public/studyset/:id`), which returns 404 for private/nonexistent sets;
- * in that case we serve the shell unchanged.
+ * It runs before netlify.toml's redirects, so `context.next()` returns
+ * whatever they serve. Non-HTML and non-200 responses (e.g. the catch-all 404
+ * for `/view/<id>/extra`) pass through untouched. Otherwise the set comes
+ * from the same unauthenticated endpoint the client uses
+ * (`/api/public/studyset/:id`):
+ *
+ * - Public set: the tags above are rewritten for the set.
+ * - API 404 (private or nonexistent; the API doesn't say which): the shell,
+ *   still 200, marked noindex and stripped of its canonical/OG/Twitter tags.
+ * - Any other API failure: the shell, unchanged.
+ *
+ * Outside production, URLs use the request's own origin and rewritten pages
+ * are noindex (see ../lib/site.ts).
  */
 
 const escapeHtml = (value: string): string =>
