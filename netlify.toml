@@ -33,11 +33,70 @@ from = "/api/e"
 to = "https://analytics.yusufaf.dev/api/e"
 status = 200
 
-# SPA fallback.
+# SPA routes: one rule per route in apps/web/src/AppRoutes.tsx, served the app
+# shell with 200. Keep this list in sync when adding a route — a route missing
+# here still renders, but answers 404. "/" is index.html itself.
+[[redirects]]
+from = "/login"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/signUp"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/callback"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/view/:id"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/create"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/create/:id"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/profile"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/explore"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/combine/:id"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/edit/:id"
+to = "/index.html"
+status = 200
+
+[[redirects]]
+from = "/study/:studysetId/:mode"
+to = "/index.html"
+status = 200
+
+# Everything else: the same shell (the app renders its NotFound view) but with
+# a real 404, so crawlers don't index unknown paths as duplicate pages.
 [[redirects]]
 from = "/*"
 to = "/index.html"
-status = 200
+status = 404
 
 # Never let the browser HTTP-cache the service worker or manifest, so SW
 # updates (and the asset cache-bust they trigger) reach returning visitors
