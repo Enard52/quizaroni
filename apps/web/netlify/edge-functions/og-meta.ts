@@ -61,8 +61,10 @@ export default async (request: Request, context: Context) => {
 
     const response = await context.next();
 
+    // Non-HTML, or a path netlify.toml already answered with 404 (e.g.
+    // /view/<id>/extra) — leave it alone rather than dress it up as the set.
     const contentType = response.headers.get('content-type') ?? '';
-    if (!contentType.includes('text/html')) {
+    if (!contentType.includes('text/html') || response.status !== 200) {
         return response;
     }
 
@@ -73,6 +75,7 @@ export default async (request: Request, context: Context) => {
     }
 
     let set: PublicSet | null = null;
+    let notFound = false;
     try {
         const apiResponse = await fetch(
             `${API_BASE}/public/studyset/${encodeURIComponent(id)}`,
@@ -81,9 +84,21 @@ export default async (request: Request, context: Context) => {
         if (apiResponse.ok) {
             const payload = await apiResponse.json();
             set = payload?.studyset ?? null;
+        } else {
+            notFound = apiResponse.status === 404;
         }
     } catch {
         // Network/API failure — fall through and serve the default shell.
+    }
+
+    // Private or nonexistent set: the same shell (an owner viewing their own
+    // private set still gets the full app), but a real 404 so crawlers drop
+    // dead or private links instead of indexing them as the generic app.
+    if (notFound) {
+        return new Response(response.body, {
+            status: 404,
+            headers: response.headers,
+        });
     }
 
     if (!set || !set.title) {
