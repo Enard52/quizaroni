@@ -200,6 +200,41 @@ export default async (request: Request, context: Context) => {
         `<meta name="twitter:description" content="${description}" />`
     );
 
+    // The shell's large image is a capture of the landing page, which under a
+    // set's title would pass for a preview of the set. Set pages get the
+    // square app icon and a small summary card instead.
+    const image = `${site.origin}/icon-512x512.png`;
+    html = replaceTag(
+        html,
+        /<meta\s+property="og:image"[^>]*>/,
+        `<meta property="og:image" content="${image}" />`
+    );
+    html = replaceTag(
+        html,
+        /<meta\s+property="og:image:width"[^>]*>/,
+        `<meta property="og:image:width" content="512" />`
+    );
+    html = replaceTag(
+        html,
+        /<meta\s+property="og:image:height"[^>]*>/,
+        `<meta property="og:image:height" content="512" />`
+    );
+    html = replaceTag(
+        html,
+        /<meta\s+property="og:image:alt"[^>]*>/,
+        `<meta property="og:image:alt" content="Quizaroni flashcard set: ${title}" />`
+    );
+    html = replaceTag(
+        html,
+        /<meta\s+name="twitter:card"[^>]*>/,
+        `<meta name="twitter:card" content="summary" />`
+    );
+    html = replaceTag(
+        html,
+        /<meta\s+name="twitter:image"[^>]*>/,
+        `<meta name="twitter:image" content="${image}" />`
+    );
+
     return serveShell(html, response, site.indexable);
 };
 
