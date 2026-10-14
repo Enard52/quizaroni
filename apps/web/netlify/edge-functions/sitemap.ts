@@ -1,12 +1,10 @@
 import type { Context } from '@netlify/edge-functions';
+import { SITE_ORIGIN } from '../lib/site.ts';
 
 // Netlify Edge Functions run on Deno, not Node. This directory is outside
 // tsconfig.json's `include`, so it gets no ambient Deno types — declare just
 // the slice of the API this file actually calls.
 declare const Deno: { env: { get(key: string): string | undefined } };
-
-// Same canonical host as og-meta.ts, whichever domain served the request.
-const SITE_ORIGIN = 'https://quizaroni.yusufaf.dev';
 
 /**
  * Dynamic XML sitemap of all public study sets.
