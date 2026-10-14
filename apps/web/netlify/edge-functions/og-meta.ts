@@ -5,6 +5,11 @@ import type { Context } from '@netlify/edge-functions';
 // the slice of the API this file actually calls.
 declare const Deno: { env: { get(key: string): string | undefined } };
 
+// The site also answers on quizaroni.netlify.app and deploy-preview hosts;
+// canonical/og:url always name the custom domain so search engines and link
+// unfurls settle on one URL.
+const SITE_ORIGIN = 'https://quizaroni.yusufaf.dev';
+
 /**
  * Per-set Open Graph / Twitter meta for public study sets.
  *
@@ -96,7 +101,7 @@ export default async (request: Request, context: Context) => {
             }${author} — study free on Quizaroni.`
     );
     const pageTitle = `${title} · Quizaroni`;
-    const canonical = `${url.origin}/view/${id}`;
+    const canonical = `${SITE_ORIGIN}/view/${id}`;
 
     let html = await response.text();
 

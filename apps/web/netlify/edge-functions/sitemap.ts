@@ -5,6 +5,9 @@ import type { Context } from '@netlify/edge-functions';
 // the slice of the API this file actually calls.
 declare const Deno: { env: { get(key: string): string | undefined } };
 
+// Same canonical host as og-meta.ts, whichever domain served the request.
+const SITE_ORIGIN = 'https://quizaroni.yusufaf.dev';
+
 /**
  * Dynamic XML sitemap of all public study sets.
  *
@@ -28,7 +31,7 @@ type PublicSummary = {
     updatedAt?: string;
 };
 
-export default async (request: Request, _context: Context) => {
+export default async (_request: Request, _context: Context) => {
     // Read lazily inside the handler — see the note in og-meta.ts about
     // Netlify's build-time bundling pass running before env vars exist.
     // Deployed AWS API Gateway (matches BASE_API_URL in the web app).
@@ -36,8 +39,6 @@ export default async (request: Request, _context: Context) => {
     if (!API_BASE) {
         throw new Error('API_BASE_URL env var is not set');
     }
-
-    const origin = new URL(request.url).origin;
 
     let studysets: PublicSummary[] = [];
     try {
@@ -56,12 +57,12 @@ export default async (request: Request, _context: Context) => {
     }
 
     const urls: string[] = [
-        `  <url>\n    <loc>${escapeXml(origin)}/</loc>\n  </url>`,
+        `  <url>\n    <loc>${escapeXml(SITE_ORIGIN)}/</loc>\n  </url>`,
     ];
 
     for (const set of studysets) {
         if (!set.studysetUUID) continue;
-        const loc = `${origin}/view/${encodeURIComponent(set.studysetUUID)}`;
+        const loc = `${SITE_ORIGIN}/view/${encodeURIComponent(set.studysetUUID)}`;
         const lastmod = set.updatedAt
             ? `\n    <lastmod>${escapeXml(set.updatedAt)}</lastmod>`
             : '';
