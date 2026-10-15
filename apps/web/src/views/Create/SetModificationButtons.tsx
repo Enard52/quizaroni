@@ -106,11 +106,11 @@ const SetModificationButtons = ({
                 </IconButton>
             </Tooltip>
             <Menu
-                id="keyboard-shortcuts-menu"
                 anchorEl={anchorEl}
                 open={keyboardShortcutsOpen}
                 onClose={handleCloseShortcutsMenu}
                 MenuListProps={{
+                    id: 'keyboard-shortcuts-menu',
                     'aria-labelledby': 'keyboard-shortcuts-button',
                 }}
                 disableScrollLock
