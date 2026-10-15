@@ -26,6 +26,17 @@ const ImagePreviewContainer = styled('div')(({ theme }) => ({
         transform: 'translateY(-0.125rem)',
         boxShadow: theme.shadows[4],
     },
+    // Both reveals are driven from here: a faded-out overlay ignores pointer
+    // events, so it can never hover itself, and the only focusable things it
+    // holds are its own buttons. `:focus-within` covers the keyboard, which is
+    // what made Delete and Replace unreachable while they were mounted only on
+    // mouse enter. The overlay is targeted by attribute rather than the styled
+    // component, so the selector is a plain string (the styled component is an
+    // object and not valid inside a template literal).
+    '&:hover [data-preview-actions], &:focus-within [data-preview-actions]': {
+        opacity: 1,
+        pointerEvents: 'auto',
+    },
 }));
 
 const ImageElement = styled('img')({
@@ -34,7 +45,7 @@ const ImageElement = styled('img')({
     objectFit: 'cover',
 });
 
-const ActionOverlay = styled('div')(({ theme }) => ({
+const ActionOverlay = styled('div')({
     position: 'absolute',
     top: 0,
     left: 0,
@@ -46,11 +57,12 @@ const ActionOverlay = styled('div')(({ theme }) => ({
     justifyContent: 'center',
     gap: '0.5rem',
     opacity: 0,
+    // Hidden here means faded out, not removed: the buttons stay in the tab
+    // order so a keyboard can reach them, and pointer events stay off so an
+    // invisible Delete button cannot be clicked by mistake.
+    pointerEvents: 'none',
     transition: 'opacity 0.2s ease',
-    '&:hover': {
-        opacity: 1,
-    },
-}));
+});
 
 const FileInfo = styled('div')(({ theme }) => ({
     position: 'absolute',
@@ -104,7 +116,6 @@ const ImagePreview = ({
     isDeleting = false,
 }: ImagePreviewProps) => {
     const [imageError, setImageError] = useState(false);
-    const [showActions, setShowActions] = useState(false);
 
     const handleDelete = (e: React.MouseEvent) => {
         e.stopPropagation();
@@ -119,10 +130,7 @@ const ImagePreview = ({
     };
 
     return (
-        <ImagePreviewContainer
-            onMouseEnter={() => setShowActions(true)}
-            onMouseLeave={() => setShowActions(false)}
-        >
+        <ImagePreviewContainer>
             {imageError ? (
                 <BrokenImageContainer>
                     <BrokenImage fontSize="large" />
@@ -136,8 +144,8 @@ const ImagePreview = ({
                         onError={() => setImageError(true)}
                         loading="lazy"
                     />
-                    {showActions && !isDeleting && (
-                        <ActionOverlay>
+                    {!isDeleting && (
+                        <ActionOverlay data-preview-actions="">
                             <IconButton
                                 onClick={handleDelete}
                                 size="small"
