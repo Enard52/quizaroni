@@ -26,17 +26,13 @@ const ImagePreviewContainer = styled('div')(({ theme }) => ({
         transform: 'translateY(-0.125rem)',
         boxShadow: theme.shadows[4],
     },
-    // Both reveals are driven from here: a faded-out overlay ignores pointer
-    // events, so it can never hover itself, and the only focusable things it
-    // holds are its own buttons. `:focus-within` covers the keyboard, which is
-    // what made Delete and Replace unreachable while they were mounted only on
-    // mouse enter. The overlay is targeted by attribute rather than the styled
-    // component, so the selector is a plain string (the styled component is an
-    // object and not valid inside a template literal).
-    '&:hover [data-preview-actions], &:focus-within [data-preview-actions]': {
-        opacity: 1,
-        pointerEvents: 'auto',
-    },
+    // :focus-visible rather than :focus-within so a mouse click doesn't leave
+    // the overlay pinned open after the pointer leaves.
+    '&:hover [data-preview-actions], &:has(:focus-visible) [data-preview-actions]':
+        {
+            opacity: 1,
+            pointerEvents: 'auto',
+        },
 }));
 
 const ImageElement = styled('img')({
@@ -57,9 +53,7 @@ const ActionOverlay = styled('div')({
     justifyContent: 'center',
     gap: '0.5rem',
     opacity: 0,
-    // Hidden here means faded out, not removed: the buttons stay in the tab
-    // order so a keyboard can reach them, and pointer events stay off so an
-    // invisible Delete button cannot be clicked by mistake.
+    // Faded out but still mounted so the buttons stay in the tab order.
     pointerEvents: 'none',
     transition: 'opacity 0.2s ease',
 });
